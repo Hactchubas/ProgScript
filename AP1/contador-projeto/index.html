@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contador de Valores com Histórico</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+        }
+        input, button {
+            margin: 10px;
+            padding: 8px;
+            font-size: 16px;
+        }
+        #result, #history {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        #history {
+            text-align: left;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        .history-item {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Contador de Valores</h1>
+        <input type="text" id="valueInput" placeholder="Digite um valor">
+        <button onclick="sendValue()">Enviar</button>
+        <div id="result"></div>
+        <div id="history"></div>
+    </div>
+
+    <script>
+        async function sendValue() {
+            const value = document.getElementById('valueInput').value;
+            if (!value) {
+                alert('Por favor, digite um valor');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:5000/count', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ value: value })
+                });
+
+                const data = await response.json();
+                document.getElementById('result').innerHTML = 
+                    `O valor "${value}" foi recebido ${data.count} vez(es)`;
+                
+                // Atualiza o histórico
+                await updateHistory(value);
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao enviar valor para o servidor');
+            }
+        }
+
+        async function updateHistory(value) {
+            try {
+                const response = await fetch(`http://localhost:5000/history/${value}`);
+                const data = await response.json();
+                
+                if (data.history.length > 0) {
+                    const historyHtml = `
+                        <h3>Histórico das últimas ${data.history.length} ocorrências de "${value}":</h3>
+                        ${data.history.map(timestamp => `
+                            <div class="history-item">
+                                ${new Date(timestamp).toLocaleString()}
+                            </div>
+                        `).join('')}
+                    `;
+                    document.getElementById('history').innerHTML = historyHtml;
+                } else {
+                    document.getElementById('history').innerHTML = '';
+                }
+            } catch (error) {
+                console.error('Erro ao obter histórico:', error);
+            }
+        }
+    </script>
+    
+</body>
+</html>
